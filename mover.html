@@ -2,133 +2,168 @@
 <html>
     <head>
         <script>
-            var mydragg = function(target, container){
-                return {
+            var mover = function(target, container){
 
-                    // move target
-                    move : function(target,pos){
-                        target.style.left = pos.x + 'px';
-                        target.style.top = pos.y + 'px';
-                    },
+                var controls = function () {
+                    return {
+                        // move target
+                        move : function(target, position){
+                            target.style.left = position.x + 'px';
+                            target.style.top = position.y + 'px';
+                        },
 
-                    // make sure target does not go outside container
-                    checkTargetBoundaries: function(pos, target, container) {
-                        var x = pos.x
-                        var y = pos.y
+                        // make sure target does not go outside container
+                        checkTargetBoundaries: function(pos, target, container) {
+                            var x = pos.x
+                            var y = pos.y
 
-                        if (x < 0) {
-                            x = 0
-                        };
-						if (y < 0) {
-                            y = 0
-                        };
-                        if (x + target.width > container.width) {
-                            x = container.width - target.width
-                        };
-						if (y + target.height > container.height) {
-                            y = container.height -target.height;
-                        };
-
-                        return {
-                            x: x,
-                            y: y
-                        }
-                    },
-
-                    // stop moving target if mouse is beyond limit outside container
-                    checkMouseBoundaries: function (mouse, container, num) {
-                            var space = num || 0
-
-                            var conditions = {
-                                'top':  (mouse.y < container.top - space),
-                                'bottom': (mouse.y > container.height + container.top + space),
-                                'left': (mouse.x < container.left - space),
-                                'right': mouse.x > container.width + container.left + space
+                            if (x < 0 ) {
+                                x = 0
+                            };
+                            if (y < 0) {
+                                y = 0
+                            };
+                            if (x + target.width > container.width) {
+                                x = container.width - target.width
+                            };
+                            if (y + target.height > container.height) {
+                                y = container.height -target.height;
                             };
 
-                            for (var condition in conditions) {
-                                if (conditions[condition]) {
-                                    // if outside container stop
-                                    mydragg.stopMoving()
-                                }
+                            return {
+                                x: x,
+                                y: y,
                             }
-                    },
+                        },
 
-                    // start moving target
-                    startMoving : function(target,container,evt){
+                        // stop moving target if mouse is beyond limit outside container
+                        checkMouseBoundaries: function (mouse, container, num) {
+                                var space = num || 0
 
-                        container = document.getElementById(container);
-
-                        var targetEl = {
-                                top: target.offsetTop,
-                                left: target.offsetLeft,
-                                width: target.clientWidth,
-                                height: target.clientHeight,
-                            },
-                            containerEl = {
-                                top: container.offsetTop,
-                                left: container.offsetLeft,
-                                width: container.clientWidth,
-                                height: container.clientHeight,
-                            },
-                            offset = {
-                                x: evt.clientX - targetEl.left,
-                                y: evt.clientY - targetEl.top,
-                            };
-
-                        document.onmousemove = function(evt){
-                            
-                            var mouse = {
-                                    x: evt.clientX,
-                                    y: evt.clientY,
-                                },
-                                targetPos = {
-                                    x: mouse.x - offset.x,
-                                    y: mouse.y - offset.y,
+                                var conditions = {
+                                    'top':  (mouse.y < container.top - space),
+                                    'bottom': (mouse.y > container.height + container.top + space),
+                                    'left': (mouse.x < container.left - space),
+                                    'right': mouse.x > container.width + container.left + space
                                 };
+
+                                for (var condition in conditions) {
+                                    if (conditions[condition]) {
+                                        // if outside container stop
+                                        controls.stopMoving()
+                                    }
+                                }
+                        },
+
+                        // start moving target
+                        startMoving : function(target,container,evt){
+
+                            var targetEl = {
+                                    top: target.offsetTop,
+                                    left: target.offsetLeft,
+                                    width: target.clientWidth,
+                                    height: target.clientHeight,
+                                },
+                                containerEl = {
+                                    top: container.offsetTop,
+                                    left: container.offsetLeft,
+                                    width: container.clientWidth,
+                                    height: container.clientHeight,
+                                },
+                                offset = {
+                                    x: evt.clientX - targetEl.left,
+                                    y: evt.clientY - targetEl.top,
+                                };
+
+                            document.onmousemove = function(evt){
+                                
+                                var mouse = {
+                                        x: evt.clientX,
+                                        y: evt.clientY,
+                                    },
+                                    targetPos = {
+                                        x: mouse.x - offset.x,
+                                        y: mouse.y - offset.y,
+                                    };
+                                
+                                // check mouse is within container (plus optional space)
+                                controls.checkMouseBoundaries(mouse, containerEl, 100)
+
+                                // check target is within container
+                                controls.move(target, controls.checkTargetBoundaries(targetPos, targetEl, containerEl));
+                            }
+
+                            // stop on mouse up
+                            document.onmouseup = function(evt) {
+                                controls.stopMoving()
+                            }
+                        },
+
+                        // stop moving target
+                        stopMoving : function(){
+                            document.onmousemove = function(){}
+                        },
+                    }
+                }();
+
+                var getDomObject = function(query) {
+                    var options = {
+                        querySelector: document.querySelector(query),
+                        getElementById: document.getElementById(query),
+                        getElementByClassName: document.getElementsByClassName(query)[0]
+                    }
+
+                    for (var option in options) {
+                        if(options[option]) {
                             
-                            // check target is within container
-                            targetPos = mydragg.checkTargetBoundaries(targetPos, targetEl, containerEl)
-
-                            // check mouse is within container (plus optional space)
-                            mydragg.checkMouseBoundaries(mouse, containerEl, 100)
-                            
-                            // continue movement
-                            mydragg.move(target,targetPos);
+                            return options[option]
                         }
+                    }
 
-                        // stop on mouse up
-                        document.onmouseup = function(evt) {
-                            mydragg.stopMoving()
-                        }
-                    },
-
-                    // stop moving target
-                    stopMoving : function(){
-                        document.onmousemove = function(){}
-                    },
+                    return false;
                 }
-            }();
 
+                // return controls;
+                var c = getDomObject(container) || window.document
+                var t = getDomObject(target)
+                if (!t) {
+                    console.log('mover cannot find ' + target)
+                    return;
+                }
+                
+                t.addEventListener('mousedown', function(event) {
+                    controls.startMoving(t, c, event);
+                })
 
-            // console.log(mydragg().init())
+                return;
+
+            };
+
+            window.onload = function (e) {
+                mover('elem', 'container');
+            }
 
         </script>
     </head>
     <body>
-		<div id='container'>
-			<div id="elem" onmousedown='mydragg.startMoving(this,"container",event);'>
+		<div class='container'>
+                <!-- onmousedown='controls.startMoving(this,"container",event);' -->
+			<div id="elem" >
                 <h3>move</h3>
 			</div>
 		</div>
     </body>
     <style>
+            body {
+                background: grey;
+            }
+
             h3 {
                 margin: 0px !important;
                 /* remove user agent padding */
             }
 
-			#container {
+			#container, .container {
 				position:absolute;
                 background-color: blue;
                 width: 600px;
