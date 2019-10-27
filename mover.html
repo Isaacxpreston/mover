@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+    <head>
+        <script>
+            var mydragg = function(target, container){
+                return {
+
+                    // move target
+                    move : function(target,pos){
+                        target.style.left = pos.x + 'px';
+                        target.style.top = pos.y + 'px';
+                    },
+
+                    // make sure target does not go outside container
+                    checkTargetBoundaries: function(pos, target, container) {
+                        var x = pos.x
+                        var y = pos.y
+
+                        if (x < 0) {
+                            x = 0
+                        };
+						if (y < 0) {
+                            y = 0
+                        };
+                        if (x + target.width > container.width) {
+                            x = container.width - target.width
+                        };
+						if (y + target.height > container.height) {
+                            y = container.height -target.height;
+                        };
+
+                        return {
+                            x: x,
+                            y: y
+                        }
+                    },
+
+                    // stop moving target if mouse is beyond limit outside container
+                    checkMouseBoundaries: function (mouse, container, num) {
+                            var space = num || 0
+
+                            var conditions = {
+                                'top':  (mouse.y < container.top - space),
+                                'bottom': (mouse.y > container.height + container.top + space),
+                                'left': (mouse.x < container.left - space),
+                                'right': mouse.x > container.width + container.left + space
+                            };
+
+                            for (var condition in conditions) {
+                                if (conditions[condition]) {
+                                    // if outside container stop
+                                    mydragg.stopMoving()
+                                }
+                            }
+                    },
+
+                    // start moving target
+                    startMoving : function(target,container,evt){
+
+                        container = document.getElementById(container);
+
+                        var targetEl = {
+                                top: target.offsetTop,
+                                left: target.offsetLeft,
+                                width: target.clientWidth,
+                                height: target.clientHeight,
+                            },
+                            containerEl = {
+                                top: container.offsetTop,
+                                left: container.offsetLeft,
+                                width: container.clientWidth,
+                                height: container.clientHeight,
+                            },
+                            offset = {
+                                x: evt.clientX - targetEl.left,
+                                y: evt.clientY - targetEl.top,
+                            };
+
+                        document.onmousemove = function(evt){
+                            
+                            var mouse = {
+                                    x: evt.clientX,
+                                    y: evt.clientY,
+                                },
+                                targetPos = {
+                                    x: mouse.x - offset.x,
+                                    y: mouse.y - offset.y,
+                                };
+                            
+                            // check target is within container
+                            targetPos = mydragg.checkTargetBoundaries(targetPos, targetEl, containerEl)
+
+                            // check mouse is within container (plus optional space)
+                            mydragg.checkMouseBoundaries(mouse, containerEl, 100)
+                            
+                            // continue movement
+                            mydragg.move(target,targetPos);
+                        }
+
+                        // stop on mouse up
+                        document.onmouseup = function(evt) {
+                            mydragg.stopMoving()
+                        }
+                    },
+
+                    // stop moving target
+                    stopMoving : function(){
+                        document.onmousemove = function(){}
+                    },
+                }
+            }();
+
+
+            // console.log(mydragg().init())
+
+        </script>
+    </head>
+    <body>
+		<div id='container'>
+			<div id="elem" onmousedown='mydragg.startMoving(this,"container",event);'>
+                <h3>move</h3>
+			</div>
+		</div>
+    </body>
+    <style>
+            h3 {
+                margin: 0px !important;
+                /* remove user agent padding */
+            }
+
+			#container {
+				position:absolute;
+                background-color: blue;
+                width: 600px;
+                height: 400px;
+                top:50px;
+                left:50px;
+			}
+            #elem{
+                position: relative;
+                background-color: green;
+                width: 200px;
+                height: 100px;
+            }
+        </style>
+</html>
