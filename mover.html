@@ -16,23 +16,57 @@
                         checkTargetBoundaries: function(pos, target, container) {
                             var x = pos.x
                             var y = pos.y
-
-                            if (x < 0 ) {
+                            
+                            if (!container.isWindow) {
+                                if (x < 0 ) {
                                 x = 0
-                            };
-                            if (y < 0) {
-                                y = 0
-                            };
-                            if (x + target.width > container.width) {
-                                x = container.width - target.width
-                            };
-                            if (y + target.height > container.height) {
-                                y = container.height -target.height;
-                            };
+                                };
+                                if (y < 0) {
+                                    y = 0
+                                };
+                                if (x + target.width > container.width) {
+                                    x = container.width - target.width
+                                };
+                                if (y + target.height > container.height) {
+                                    y = container.height -target.height;
+                                };
+                            }
 
                             return {
                                 x: x,
                                 y: y,
+                            }
+                        },
+
+                        // todo: make sure target does not go outside of window
+                        checkWindowBoundaries: function(pos, target) {
+                            var x = pos.x,
+                                y = pos.y,
+                                clientRect = target.element.getBoundingClientRect(),
+                                innerHeight = window.innerHeight,
+                                innerWidth = window.innerWidth;
+
+                            var conditions = {
+                                'top': clientRect.y < -target.height/3,
+                                'bottom':  clientRect.y > innerHeight - target.height,
+                                'left': clientRect.x < -target.width/3,
+                                'right': clientRect.x > innerWidth + target.width - 1,
+                            }
+
+                            for (var condition in conditions) {
+                                if (conditions[condition]) {
+                                    console.log('stopped: ',condition, conditions[condition]) 
+                                    controls.stopMoving()
+                                    return {
+                                        x: 0,
+                                        y: 0
+                                    }
+                                }
+                            }
+
+                            return {
+                                x: x,
+                                y: y
                             }
                         },
 
@@ -63,12 +97,14 @@
                                     left: target.offsetLeft,
                                     width: target.clientWidth,
                                     height: target.clientHeight,
+                                    element: target
                                 },
                                 containerEl = {
                                     top: container.offsetTop,
                                     left: container.offsetLeft,
                                     width: container.clientWidth,
                                     height: container.clientHeight,
+                                    isWindow: container === window.document,
                                 },
                                 offset = {
                                     x: evt.clientX - targetEl.left,
@@ -90,7 +126,12 @@
                                 controls.checkMouseBoundaries(mouse, containerEl, 100)
 
                                 // check target is within container
-                                controls.move(target, controls.checkTargetBoundaries(targetPos, targetEl, containerEl));
+                                // controls.move(target, controls.checkTargetBoundaries(targetPos, targetEl, containerEl));
+
+                                controls.move(target, controls.checkWindowBoundaries(controls.checkTargetBoundaries(targetPos, targetEl, containerEl), targetEl));
+
+                                // check target is within window
+                                // controls.checkWindowBoundaries(target.element, controls.checkTargetBoundaries(targetPos, targetEl, containerEl))
                             }
 
                             // stop on mouse up
@@ -106,6 +147,7 @@
                     }
                 }();
 
+                // get object
                 var getDomObject = function(query) {
                     var options = {
                         querySelector: document.querySelector(query),
@@ -140,14 +182,13 @@
             };
 
             window.onload = function (e) {
-                mover('elem', 'container');
+                mover('elem', 'conafstainer');
             }
 
         </script>
     </head>
     <body>
 		<div class='container'>
-                <!-- onmousedown='controls.startMoving(this,"container",event);' -->
 			<div id="elem" >
                 <h3>move</h3>
 			</div>
