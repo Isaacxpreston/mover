@@ -1,0 +1,239 @@
+<!doctype html>
+<html>
+    <head>
+        <script>
+            var mover = function(target, container){
+
+                // get object
+                var getDomObject = function(query) {
+                    var options = {
+                        querySelector: document.querySelector(query),
+                        getElementById: document.getElementById(query),
+                        getElementByClassName: document.getElementsByClassName(query)[0]
+                    }
+
+                    for (var option in options) {
+                        if(options[option]) {
+                            return options[option]
+                        }
+                    }
+
+                    return false;
+                }
+
+                var controls = function () {
+                    return {
+                        // move target
+                        move : function(target, position, animate){
+                            if (animate) {
+
+                                console.log('animating.....')
+                                // recursive code goes here
+                                target.style.left = position.x + 'px';
+                                target.style.top = position.y + 'px';
+                                target.classList.add('transition-1');
+
+                                setTimeout(function() {
+                                    target.classList.remove('transition-1')
+                                }, 500)
+
+                            } else {
+                                target.style.left = position.x + 'px';
+                                target.style.top = position.y + 'px';
+                            }
+                        },
+
+                        // make sure target does not go outside container
+                        checkTargetBoundaries: function(pos, target, container) {
+                            var x = pos.x
+                            var y = pos.y
+                            
+                            if (!container.isWindow) {
+                                if (x < 0 ) {
+                                x = 0
+                                };
+                                if (y < 0) {
+                                    y = 0
+                                };
+                                if (x + target.width > container.width) {
+                                    x = container.width - target.width
+                                };
+                                if (y + target.height > container.height) {
+                                    y = container.height -target.height;
+                                };
+                            }
+
+                            return {
+                                x: x,
+                                y: y,
+                            }
+                        },
+
+                        // make sure target does not go outside window
+                        checkWindowBoundaries: function(target) {
+                            var clientRect = target.element.getBoundingClientRect(),
+                                innerHeight = window.innerHeight,
+                                innerWidth = window.innerWidth,
+                                space = 3;
+
+                            var conditions = {
+                                'top': clientRect.y < -target.height/space,
+                                'bottom':  clientRect.y > innerHeight - target.height/space,
+                                'left': clientRect.x < -target.width/space,
+                                'right': clientRect.x > innerWidth - target.width/space,
+                            }
+
+                            for (var condition in conditions) {
+                                if (conditions[condition]) {
+                                    controls.stopMoving()
+                                    return false
+                                }
+                            }
+
+                            return true
+                        },
+
+                        // stop moving target if mouse is beyond range outside container
+                        checkMouseBoundaries: function (mouse, container, range) {
+                                var space = range || 0
+
+                                var conditions = {
+                                    'top':  (mouse.y < container.top - space),
+                                    'bottom': (mouse.y > container.height + container.top + space),
+                                    'left': (mouse.x < container.left - space),
+                                    'right': mouse.x > container.width + container.left + space
+                                };
+
+                                for (var condition in conditions) {
+                                    if (conditions[condition]) {
+                                        // if outside container stop
+                                        controls.stopMoving()
+                                    }
+                                }
+                        },
+
+                        // start moving target
+                        startMoving : function(target, container, initialPos, evt){
+
+                            var targetEl = {
+                                    top: target.offsetTop,
+                                    left: target.offsetLeft,
+                                    width: target.clientWidth,
+                                    height: target.clientHeight,
+                                    element: target
+                                },
+                                containerEl = {
+                                    top: container.offsetTop,
+                                    left: container.offsetLeft,
+                                    width: container.clientWidth,
+                                    height: container.clientHeight,
+                                    isWindow: container === window.document,
+                                },
+                                offset = {
+                                    x: evt.clientX - targetEl.left,
+                                    y: evt.clientY - targetEl.top,
+                                };
+
+                            document.onmousemove = function(evt){
+                                
+                                var mouse = {
+                                        x: evt.clientX,
+                                        y: evt.clientY,
+                                    },
+                                    targetPos = {
+                                        x: mouse.x - offset.x,
+                                        y: mouse.y - offset.y,
+                                    };
+                                
+                                // check mouse is within container range
+                                controls.checkMouseBoundaries(mouse, containerEl, 100)
+
+                                // check mouse is within window
+                                if (controls.checkWindowBoundaries(targetEl)) {
+                                    // move if within window
+                                    controls.move(target, controls.checkTargetBoundaries(targetPos, targetEl, containerEl), false);
+                                } else {
+                                    // return to starting position if outside window
+                                    controls.move(target, initialPos, true);
+                                }
+
+                            }
+
+                            // stop on mouse up
+                            document.onmouseup = function(evt) {
+                                controls.stopMoving()
+                            }
+                        },
+
+                        // stop moving target
+                        stopMoving : function(){
+                            document.onmousemove = function(){}
+                        },
+                    }
+                }();
+
+                // return controls;
+                var c = getDomObject(container) || window.document
+                var t = getDomObject(target)
+
+                if (t) {
+                    // initial position
+                    var init = {
+                        x: t.offsetLeft,
+                        y: t.offsetTop,
+                    }
+                
+                    t.addEventListener('mousedown', function(event) {
+                        controls.startMoving(t, c, init, event);
+                    })
+                }
+
+                return;
+
+            };
+
+            window.onload = function (e) {
+                mover('elem', 'contasdfiner');
+            }
+
+        </script>
+    </head>
+    <body>
+		<div class='container'>
+			<div id="elem" >
+                <h3>move</h3>
+			</div>
+		</div>
+    </body>
+    <style>
+            html, body {
+                background: grey;
+                overflow: hidden;
+            }
+
+            h3 {
+                margin: 0px !important;
+                /* remove user agent padding */
+            }
+
+			#container, .container {
+				position:absolute;
+                background-color: blue;
+                width: 600px;
+                height: 400px;
+                top:50px;
+                left:50px;
+			}
+            #elem{
+                position: relative;
+                background-color: green;
+                width: 200px;
+                height: 100px;
+                top: 40px;
+            }
+
+            .transition-1 {
+                transition: 0.7s;
+            }
+        </style>
+</html>
