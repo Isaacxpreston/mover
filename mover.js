@@ -2,11 +2,14 @@ const mover = function (target, container) {
 
   // check list for truthy flags
   const flagCheck = (list, cb) => {
-    let flags = list.filter((condition) => {
+    let index = false
+    let flags = list.filter((condition, i) => {
+      if (condition) index = i
       return condition
     });
-    if (flags.length && typeof cb === 'function') cb() // stopMoving();
-    return !flags.length;
+    if (flags.length && typeof cb === 'function') cb(index) // stopMoving();
+
+    return !flags.length
   };
 
   // get object
@@ -133,8 +136,9 @@ const mover = function (target, container) {
   // todo: replace with clientrect
   const checkTargetBoundaries = (pos, target, container, range) => {
     let x = pos.x,
-      y = pos.y,
-      space = range || 0;
+      y = pos.y;
+
+    // space = range || 0;
 
     // UNCOMMENT LATER
     // if (!container.isWindow) {
@@ -146,25 +150,64 @@ const mover = function (target, container) {
 
     // --
 
+    const moveBack = (target, x, y) => {
+      target.style.left = x + 'px';
+      target.style.top = y + 'px';
+      target.classList.add('transition-2', 'red');
+      setTimeout(() => {
+        target.classList.remove('transition-2', 'red');
+      }, 250);
+    }
+
     const containerEl = container.element.getBoundingClientRect()
     const targetEl = target.element.getBoundingClientRect()
     const classList = target.element.classList
+    const space = 20
     const conditions = [
-      targetEl.left < containerEl.left,
-      targetEl.right > containerEl.right,
-      targetEl.top < containerEl.top,
-      targetEl.bottom > containerEl.bottom
+      targetEl.left < containerEl.left - space,
+      targetEl.right > containerEl.right + space,
+      targetEl.top < containerEl.top - space,
+      targetEl.bottom > containerEl.bottom + space
+    ];
+    const errors = [
+      'left boundary',
+      'right boundary',
+      'top boundary',
+      'bottom boundary'
+    ];
+    const resolutions = [
+      () => {
+        moveBack(target.element, 0, targetEl.top - containerEl.top)
+      },
+      () => {
+        moveBack(target.element, containerEl.width - targetEl.width, targetEl.top - containerEl.top)
+      },
+      () => {
+        moveBack(target.element, targetEl.left - containerEl.left, 0)
+      },
+      () => {
+        moveBack(target.element, targetEl.left - containerEl.left, containerEl.height - targetEl.height)
+      },
     ];
 
-    !flagCheck(conditions) ? classList.add('red') : classList.remove('red')
+    flagCheck(conditions, (ind) => {
+      stopMoving();
+      resolutions[ind]();
+    });
 
     // --
 
+    // refactor later!
+    if (flagCheck(conditions)) {
+      return {
+        x,
+        y
+      };
+    } else {
+      return false
+    }
 
-    return {
-      x,
-      y
-    };
+
 
   };
 
