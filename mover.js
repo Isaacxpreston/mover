@@ -5,7 +5,7 @@ const mover = function (target, container) {
     let flags = list.filter((condition) => {
       return condition
     });
-    if (flags.length) cb() // stopMoving();
+    if (flags.length && typeof cb === 'function') cb() // stopMoving();
     return !flags.length;
   };
 
@@ -18,13 +18,9 @@ const mover = function (target, container) {
       document.getElementsByClassName(query)[0]
     ];
 
-    let temp = options.reduce((acc, cur) => {
+    return options.reduce((acc, cur) => {
       return cur ? cur : acc;
     }, false);
-
-    console.log(temp, temp.getBoundingClientRect())
-
-    return temp;
 
   };
 
@@ -104,7 +100,7 @@ const mover = function (target, container) {
   // move object
   const moveTarget = (target, position, animate) => {
     if (animate) {
-      
+
       // UNCOMMENT LATER
       /*
       const labels = ['currentPosition', 'distanceToEnd', 'cssProperty'],
@@ -134,6 +130,7 @@ const mover = function (target, container) {
   };
 
   // make sure object does not go outside container
+  // todo: replace with clientrect
   const checkTargetBoundaries = (pos, target, container, range) => {
     let x = pos.x,
       y = pos.y,
@@ -146,6 +143,23 @@ const mover = function (target, container) {
     //   if (x + target.width - space > container.width) x = container.width - target.width;
     //   if (y + target.height - space > container.height) y = container.height - target.height;
     // };
+
+    // --
+
+    const containerEl = container.element.getBoundingClientRect()
+    const targetEl = target.element.getBoundingClientRect()
+    const classList = target.element.classList
+    const conditions = [
+      targetEl.left < containerEl.left,
+      targetEl.right > containerEl.right,
+      targetEl.top < containerEl.top,
+      targetEl.bottom > containerEl.bottom
+    ];
+
+    !flagCheck(conditions) ? classList.add('red') : classList.remove('red')
+
+    // --
+
 
     return {
       x,

@@ -27,3 +27,8 @@ position:absolute;
 .transition-1 {
   transition: 0.7s;
 }
+
+.red {
+  background-color: red !important;
+  opacity: 0.5;
+}
