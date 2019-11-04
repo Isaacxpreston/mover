@@ -5,7 +5,7 @@ const mover = function (target, container) {
     let flags = list.filter((condition) => {
       return condition
     });
-    if (flags.length) cb() // controls.stopMoving();
+    if (flags.length) cb() // stopMoving();
     return !flags.length;
   };
 
@@ -24,6 +24,7 @@ const mover = function (target, container) {
 
   };
 
+  // move object
   const moveTarget = (target, position, animate) => {
     if (animate) {
 
@@ -106,116 +107,113 @@ const mover = function (target, container) {
     };
   };
 
-  const controls = {
+  // make sure object does not go outside container
+  const checkTargetBoundaries = (pos, target, container) => {
+    let x = pos.x,
+      y = pos.y;
 
-    // make sure target does not go outside container
-    checkTargetBoundaries: (pos, target, container) => {
-      let x = pos.x,
-        y = pos.y;
+    if (!container.isWindow) {
+      if (x < 0) x = 0;
+      if (y < 0) y = 0;
+      if (x + target.width > container.width) x = container.width - target.width;
+      if (y + target.height > container.height) y = container.height - target.height;
+    };
 
-      if (!container.isWindow) {
-        if (x < 0) x = 0;
-        if (y < 0) y = 0;
-        if (x + target.width > container.width) x = container.width - target.width;
-        if (y + target.height > container.height) y = container.height - target.height;
+    return {
+      x,
+      y
+    };
+  };
+
+  // make sure target does not go outside window
+  const checkWindowBoundaries = (target) => {
+    const clientRect = target.element.getBoundingClientRect(),
+      innerHeight = window.innerHeight,
+      innerWidth = window.innerWidth,
+      space = 3,
+      conditions = [
+        clientRect.y < -target.height / space,
+        clientRect.y > innerHeight - target.height / space,
+        clientRect.x < -target.width / space,
+        clientRect.x > innerWidth - target.width / space,
+      ];
+
+    return flagCheck(conditions, stopMoving);
+  };
+
+  // stop moving target if mouse is beyond range outside container
+  const checkMouseBoundaries = (mouse, container, range) => {
+    const space = range || 0,
+      conditions = [
+        mouse.y < container.top - space,
+        mouse.y > container.height + container.top + space,
+        mouse.x < container.left - space,
+        mouse.x > container.width + container.left + space
+      ];
+
+    return flagCheck(conditions, stopMoving);
+  };
+
+  // start moving target
+  const startMoving = (target, container, initialPos, evt) => {
+
+    //todo: possibly refactor targetEl and containerEl objects to function
+    const targetEl = {
+        top: target.offsetTop,
+        left: target.offsetLeft,
+        width: target.clientWidth,
+        height: target.clientHeight,
+        element: target,
+        // isWindow: 
+      },
+      containerEl = {
+        top: container.offsetTop,
+        left: container.offsetLeft,
+        width: container.clientWidth,
+        height: container.clientHeight,
+        isWindow: container === window.document,
+        // element 
+      },
+      // offset from mouse to target element borders
+      offset = {
+        x: evt.clientX - targetEl.left,
+        y: evt.clientY - targetEl.top,
       };
 
-      return {
-        x,
-        y
-      };
-    },
+    document.onmousemove = (evt) => {
 
-    // make sure target does not go outside window
-    checkWindowBoundaries: (target) => {
-      const clientRect = target.element.getBoundingClientRect(),
-        innerHeight = window.innerHeight,
-        innerWidth = window.innerWidth,
-        space = 3,
-        conditions = [
-          clientRect.y < -target.height / space,
-          clientRect.y > innerHeight - target.height / space,
-          clientRect.x < -target.width / space,
-          clientRect.x > innerWidth - target.width / space,
-        ];
-
-      return flagCheck(conditions, controls.stopMoving);
-    },
-
-    // stop moving target if mouse is beyond range outside container
-    checkMouseBoundaries: (mouse, container, range) => {
-      const space = range || 0,
-        conditions = [
-          mouse.y < container.top - space,
-          mouse.y > container.height + container.top + space,
-          mouse.x < container.left - space,
-          mouse.x > container.width + container.left + space
-        ];
-
-      return flagCheck(conditions, controls.stopMoving);
-    },
-
-    // start moving target
-    startMoving: (target, container, initialPos, evt) => {
-
-      //todo: possibly refactor targetEl and containerEl objects to function
-      const targetEl = {
-          top: target.offsetTop,
-          left: target.offsetLeft,
-          width: target.clientWidth,
-          height: target.clientHeight,
-          element: target,
-          // isWindow: 
+      const mouse = {
+          x: evt.clientX,
+          y: evt.clientY,
         },
-        containerEl = {
-          top: container.offsetTop,
-          left: container.offsetLeft,
-          width: container.clientWidth,
-          height: container.clientHeight,
-          isWindow: container === window.document,
-          // element 
-        },
-        // offset from mouse to target element borders
-        offset = {
-          x: evt.clientX - targetEl.left,
-          y: evt.clientY - targetEl.top,
+        targetPos = {
+          x: mouse.x - offset.x,
+          y: mouse.y - offset.y,
         };
 
-      document.onmousemove = (evt) => {
+      // check mouse is within container borders + additional range in px
+      checkMouseBoundaries(mouse, containerEl, 100)
 
-        const mouse = {
-            x: evt.clientX,
-            y: evt.clientY,
-          },
-          targetPos = {
-            x: mouse.x - offset.x,
-            y: mouse.y - offset.y,
-          };
-
-        // check mouse is within container borders + additional range in px
-        controls.checkMouseBoundaries(mouse, containerEl, 100)
-
-        // check mouse is within window
-        if (controls.checkWindowBoundaries(targetEl)) {
-          // moveTarget if within window
-          moveTarget(target, controls.checkTargetBoundaries(targetPos, targetEl, containerEl), false);
-        } else {
-          // return to starting position if outside window
-          moveTarget(target, initialPos, true);
-        }
-
+      // check mouse is within window
+      if (checkWindowBoundaries(targetEl)) {
+        // moveTarget if within window
+        moveTarget(target, checkTargetBoundaries(targetPos, targetEl, containerEl), false);
+      } else {
+        // return to starting position if outside window
+        moveTarget(target, initialPos, true);
       }
 
-      // stop on mouse up
-      document.onmouseup = () => {
-        controls.stopMoving();
-      };
-    },
+    }
 
-    // stop moving target
-    stopMoving: () => {
-      document.onmousemove = false;
-    },
+    // stop on mouse up
+    document.onmouseup = () => {
+      stopMoving();
+    };
+  };
+
+  // stop moving target
+  const stopMoving = () => {
+    document.onmousemove = false;
   };
 
   // define target and container, initialize if target found
@@ -231,7 +229,7 @@ const mover = function (target, container) {
     };
 
     targetFound.addEventListener('mousedown', function (evt) {
-      controls.startMoving(targetFound, containerFound, initialPosition, evt);
+      startMoving(targetFound, containerFound, initialPosition, evt);
     });
   }
 
