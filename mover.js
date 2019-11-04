@@ -39,7 +39,18 @@ const mover = function (target, container) {
     }
   };
 
+  const removePx = (input) => {
+    return typeof input === 'string' ? parseInt(input.replace('px', ''), 10) : input
+  }
 
+  const moveBack = (target, x, y) => {
+    target.style.left = removePx(x) + 'px';
+    target.style.top = removePx(y) + 'px';
+    target.classList.add('transition-2', 'red');
+    setTimeout(() => {
+      target.classList.remove('transition-2', 'red');
+    }, 250);
+  };
 
   // animate target to position (not done, using css class right now)
   // create coordinate objects for x and y cssAxis
@@ -150,14 +161,10 @@ const mover = function (target, container) {
 
     // --
 
-    const moveBack = (target, x, y) => {
-      target.style.left = x + 'px';
-      target.style.top = y + 'px';
-      target.classList.add('transition-2', 'red');
-      setTimeout(() => {
-        target.classList.remove('transition-2', 'red');
-      }, 250);
-    }
+    if (container.isWindow) return {
+      x,
+      y
+    };
 
     const containerEl = container.element.getBoundingClientRect()
     const targetEl = target.element.getBoundingClientRect()
@@ -212,19 +219,45 @@ const mover = function (target, container) {
   };
 
   // make sure object does not go outside window
-  const checkWindowBoundaries = (target, range) => {
-    const clientRect = target.element.getBoundingClientRect(),
+  const checkWindowBoundaries = (target, initialPos, range) => {
+    const targetRect = target.element.getBoundingClientRect(),
+      targetStyle = target.element.style,
       innerHeight = window.innerHeight,
       innerWidth = window.innerWidth,
       space = range || 3,
       conditions = [
-        clientRect.y < -target.height / space,
-        clientRect.y > innerHeight - target.height / space,
-        clientRect.x < -target.width / space,
-        clientRect.x > innerWidth - target.width / space,
-      ];
+        targetRect.y < -target.height / space,
+        targetRect.y > innerHeight - target.height / space,
+        targetRect.x < -target.width / space,
+        targetRect.x > innerWidth - target.width / space,
+      ],
+      errors = [
+        'top boundary',
+        'bottom boundary',
+        'left boundary',
+        'right boundary'
+      ],
+      resolutions = [
+        () => {
+          moveBack(target.element, targetStyle.left, initialPos.rect.y - initialPos.y - targetRect.height)
+        },
+        () => {
+          moveBack(target.element, targetStyle.left, innerHeight - targetRect.height - (initialPos.rect.y - initialPos.y))
+        },
+        () => {
+          moveBack(target.element, -(initialPos.rect.x - initialPos.x), targetStyle.top)
+        },
+        () => {
+          moveBack(target.element, innerWidth - targetRect.width - (initialPos.rect.x - initialPos.x), targetStyle.top)
+        },
+      ]
 
-    return flagCheck(conditions, stopMoving);
+    return flagCheck(conditions, (ind) => {
+      console.log('window boundaries reached');
+      stopMoving();
+      console.log(errors[ind]);
+      resolutions[ind]();
+    });
   };
 
   // stop moving object if mouse is beyond range outside container
@@ -255,6 +288,8 @@ const mover = function (target, container) {
 
     document.onmousemove = (evt) => {
 
+      // console.log(initialPos.rect)
+
       const mouse = {
           x: evt.clientX,
           y: evt.clientY,
@@ -269,14 +304,15 @@ const mover = function (target, container) {
       // checkMouseBoundaries(mouse, containerEl, 100);
 
       // check mouse is within window
-      if (checkWindowBoundaries(targetEl)) {
+      if (checkWindowBoundaries(targetEl, initialPos)) {
         // moveTarget if within window
         moveTarget(target, checkTargetBoundaries(targetPos, targetEl, containerEl), false);
         // moveTarget(target, targetPos, false);
-      } else {
-        // return to starting position if outside window
-        moveTarget(target, initialPos, true);
-      };
+      }
+      // else {
+      // return to starting position if outside window
+      // moveTarget(target, initialPos, true);
+      // };
 
     };
 
@@ -301,6 +337,7 @@ const mover = function (target, container) {
     const initialPosition = {
       x: targetFound.offsetLeft,
       y: targetFound.offsetTop,
+      rect: targetFound.getBoundingClientRect()
     };
 
     targetFound.addEventListener('mousedown', function (evt) {
@@ -311,3 +348,5 @@ const mover = function (target, container) {
   return;
 
 };
+
+// todo: handle any number of container and parent elements , while still confining target element to SPECIFIED container OR window
