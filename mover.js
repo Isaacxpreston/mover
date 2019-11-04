@@ -1,5 +1,14 @@
 const mover = function (target, container) {
 
+  // check list for truthy flags
+  const flagCheck = (list, cb) => {
+    let flags = list.filter((condition) => {
+      return condition
+    });
+    if (flags.length) cb() // controls.stopMoving();
+    return !flags.length;
+  };
+
   // get object
   const getDomObject = (query) => {
 
@@ -7,7 +16,7 @@ const mover = function (target, container) {
       document.querySelector(query),
       document.getElementById(query),
       document.getElementsByClassName(query)[0]
-    ]
+    ];
 
     return options.reduce((acc, cur) => {
       return cur ? cur : acc;
@@ -15,91 +24,89 @@ const mover = function (target, container) {
 
   };
 
-  const controls = {
+  const moveTarget = (target, position, animate) => {
+    if (animate) {
 
-    // move target
-    move: function (target, position, animate) {
-      if (animate) {
+      // animate target to position (not done, using css class right now)
+      // create coordinate objects for x and y axis
+      const positionObject = (target, endPosition, axis, cur, dist) => {
 
-        // animate target to position (not done, using css class right now)
-        // create coordinate objects for x and y axis
-        const positionObject = function (target, endPosition, axis, cur, dist) {
-
-          // get current position
-          const getCurrentPosition = function (el, axis) {
-            return parseInt(el.style[axis].replace('px', ''), 10)
-          }
-
-          // get distance to endpoint
-          const getDistance = function (current, end) {
-            var distance = Math.abs(current - end),
-              plusOrMinus = current > end ? -1 : 1;
-            return plusOrMinus * distance;
-          };
-
-          // return results
-          const current = getCurrentPosition(target, axis);
-          const distance = getDistance(current, endPosition);
-
-          return {
-            [cur]: current,
-            [dist]: distance,
-          }
+        // get current position
+        const getCurrentPosition = function (el, axis) {
+          return parseInt(el.style[axis].replace('px', ''), 10)
         }
 
-        var makeNewCoordinates = (coordinates, cur, dist) => {
-          var newCoordinates = {};
+        // get distance to endpoint
+        const getDistance = function (current, end) {
+          var distance = Math.abs(current - end),
+            plusOrMinus = current > end ? -1 : 1;
+          return plusOrMinus * distance;
+        };
 
-          // newCoordinates.x.currentPosition = coodinates.x.currentPosition + ((distanceToEnd / distanceToEnd) * int)
-          for (var i in coordinates) {
-            if (coordinates[i][dist] === 0) {
-              newCoordinates[i] = coordinates[i];
-            } else {
-              var amount = coordinates[i][dist] < 0 ? -1 : 1;
+        // return results
+        const current = getCurrentPosition(target, axis);
+        const distance = getDistance(current, endPosition);
 
-              newCoordinates[i] = {
-                [cur]: coordinates[i][cur] + amount,
-                [dist]: coordinates[i][dist] - amount,
-              };
+        return {
+          [cur]: current,
+          [dist]: distance,
+        }
+      }
+
+      const makeNewCoordinates = (coordinates, cur, dist) => {
+        const newCoordinates = {};
+
+        // newCoordinates.x.currentPosition = coodinates.x.currentPosition + ((distanceToEnd / distanceToEnd) * int)
+        for (let i in coordinates) {
+          if (coordinates[i][dist] === 0) {
+            newCoordinates[i] = coordinates[i];
+          } else {
+            const amount = coordinates[i][dist] < 0 ? -1 : 1;
+
+            newCoordinates[i] = {
+              [cur]: coordinates[i][cur] + amount,
+              [dist]: coordinates[i][dist] - amount,
             };
           };
-
-          return newCoordinates;
         };
 
-        var animateToEnd = (coordinates, cur, dist) => {
-          var newCoordinates = makeNewCoordinates(coordinates, cur, dist)
-          return newCoordinates
-        };
-
-        var labels = ['currentPosition', 'distanceToEnd'];
-
-        var targetCoordinates = {
-          x: positionObject(target, position.x, 'left', ...labels),
-          y: positionObject(target, position.y, 'top', ...labels)
-        };
-
-        // console.log(targetCoordinates)
-        // console.log(animateToEnd(targetCoordinates, ...labels))
-
-        target.style.left = position.x + 'px';
-        target.style.top = position.y + 'px';
-
-        // temp, replace with animate
-
-        target.classList.add('transition-1');
-
-        setTimeout(() => {
-          target.classList.remove('transition-1')
-        }, 500);
-
-      } else {
-
-        // set new coordinates without animating
-        target.style.left = position.x + 'px';
-        target.style.top = position.y + 'px';
+        return newCoordinates;
       };
-    },
+
+      const animateToEnd = (coordinates, cur, dist) => {
+        const newCoordinates = makeNewCoordinates(coordinates, cur, dist)
+        return newCoordinates
+      };
+
+      const labels = ['currentPosition', 'distanceToEnd'];
+
+      const targetCoordinates = {
+        x: positionObject(target, position.x, 'left', ...labels),
+        y: positionObject(target, position.y, 'top', ...labels)
+      };
+
+      // console.log(targetCoordinates)
+      // console.log(animateToEnd(targetCoordinates, ...labels))
+
+      target.style.left = position.x + 'px';
+      target.style.top = position.y + 'px';
+
+      // temp, replace with animate
+      target.classList.add('transition-1');
+
+      setTimeout(() => {
+        target.classList.remove('transition-1')
+      }, 500);
+
+    } else {
+
+      // set new coordinates without animating
+      target.style.left = position.x + 'px';
+      target.style.top = position.y + 'px';
+    };
+  };
+
+  const controls = {
 
     // make sure target does not go outside container
     checkTargetBoundaries: (pos, target, container) => {
@@ -131,14 +138,8 @@ const mover = function (target, container) {
           clientRect.x < -target.width / space,
           clientRect.x > innerWidth - target.width / space,
         ];
-      
-      // code is reused here and in checkMouseBoundaries
-      // todo: possibly refactor into parent function
-      let flags = conditions.filter((condition) => {
-        return condition
-      });
-      if (flags.length) controls.stopMoving();
-      return !flags.length;
+
+      return flagCheck(conditions, controls.stopMoving);
     },
 
     // stop moving target if mouse is beyond range outside container
@@ -151,17 +152,13 @@ const mover = function (target, container) {
           mouse.x > container.width + container.left + space
         ];
 
-      const flags = conditions.filter((condition) => {
-        return condition
-      });
-      if (flags.length) controls.stopMoving();
-      return !flags.length;
+      return flagCheck(conditions, controls.stopMoving);
     },
 
     // start moving target
     startMoving: (target, container, initialPos, evt) => {
 
-      //todo: refactor targetEl and containerEl objects to function
+      //todo: possibly refactor targetEl and containerEl objects to function
       const targetEl = {
           top: target.offsetTop,
           left: target.offsetLeft,
@@ -178,6 +175,7 @@ const mover = function (target, container) {
           isWindow: container === window.document,
           // element 
         },
+        // offset from mouse to target element borders
         offset = {
           x: evt.clientX - targetEl.left,
           y: evt.clientY - targetEl.top,
@@ -194,24 +192,24 @@ const mover = function (target, container) {
             y: mouse.y - offset.y,
           };
 
-        // check mouse is within container range
+        // check mouse is within container borders + additional range in px
         controls.checkMouseBoundaries(mouse, containerEl, 100)
 
         // check mouse is within window
         if (controls.checkWindowBoundaries(targetEl)) {
-          // move if within window
-          controls.move(target, controls.checkTargetBoundaries(targetPos, targetEl, containerEl), false);
+          // moveTarget if within window
+          moveTarget(target, controls.checkTargetBoundaries(targetPos, targetEl, containerEl), false);
         } else {
           // return to starting position if outside window
-          controls.move(target, initialPos, true);
+          moveTarget(target, initialPos, true);
         }
 
       }
 
       // stop on mouse up
       document.onmouseup = () => {
-        controls.stopMoving()
-      }
+        controls.stopMoving();
+      };
     },
 
     // stop moving target
@@ -243,5 +241,5 @@ const mover = function (target, container) {
 
 // initialize mover
 window.onload = function (e) {
-  mover('elem', 'container');
+  mover('elem', 'containerR');
 }
