@@ -1,0 +1,29 @@
+html, body {
+  background: grey;
+  overflow: hidden;
+}
+
+h3 {
+  margin: 0px !important;
+  /* remove user agent padding */
+}
+
+#container, .container {
+position:absolute;
+  background-color: blue;
+  width: 600px;
+  height: 400px;
+  top:50px;
+  left:50px;
+}
+#elem{
+  position: relative;
+  background-color: green;
+  width: 200px;
+  height: 100px;
+  top: 40px;
+}
+
+.transition-1 {
+  transition: 0.7s;
+}
