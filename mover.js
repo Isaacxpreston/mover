@@ -24,17 +24,29 @@ const mover = function (target, container) {
 
   };
 
+  // return properties of dom object
+  const getElProperties = (el) => {
+    return {
+      top: el.offsetTop,
+      left: el.offsetLeft,
+      width: el.clientWidth,
+      height: el.clientHeight,
+      element: el,
+      isWindow: el === window.document,
+    }
+  };
+
   // move object
   const moveTarget = (target, position, animate) => {
     if (animate) {
 
       // animate target to position (not done, using css class right now)
-      // create coordinate objects for x and y axis
-      const positionObject = (target, endPosition, axis, cur, dist) => {
+      // create coordinate objects for x and y cssAxis
+      const makeCoordinates = (target, endPosition, cssAxis, cur, dist, css) => {
 
         // get current position
-        const getCurrentPosition = function (el, axis) {
-          return parseInt(el.style[axis].replace('px', ''), 10)
+        const getCurrentPosition = function (el, cssAxis) {
+          return parseInt(el.style[cssAxis].replace('px', ''), 10)
         }
 
         // get distance to endpoint
@@ -45,19 +57,20 @@ const mover = function (target, container) {
         };
 
         // return results
-        const current = getCurrentPosition(target, axis);
+        const current = getCurrentPosition(target, cssAxis);
         const distance = getDistance(current, endPosition);
 
         return {
           [cur]: current,
           [dist]: distance,
+          [css]: cssAxis,
         }
       }
 
-      const makeNewCoordinates = (coordinates, cur, dist) => {
+      const changeCoordinates = (coordinates, cur, dist) => {
         const newCoordinates = {};
+        // todo: be able to change amount
 
-        // newCoordinates.x.currentPosition = coodinates.x.currentPosition + ((distanceToEnd / distanceToEnd) * int)
         for (let i in coordinates) {
           if (coordinates[i][dist] === 0) {
             newCoordinates[i] = coordinates[i];
@@ -65,6 +78,7 @@ const mover = function (target, container) {
             const amount = coordinates[i][dist] < 0 ? -1 : 1;
 
             newCoordinates[i] = {
+              ...coordinates[i],
               [cur]: coordinates[i][cur] + amount,
               [dist]: coordinates[i][dist] - amount,
             };
@@ -74,30 +88,38 @@ const mover = function (target, container) {
         return newCoordinates;
       };
 
-      const animateToEnd = (coordinates, cur, dist) => {
-        const newCoordinates = makeNewCoordinates(coordinates, cur, dist)
-        return newCoordinates
+      const animateToEnd = (targetEl, coordinates, cur, dist, css) => {
+        const newCoordinates = changeCoordinates(coordinates, cur, dist);
+        console.log('current coordinates', coordinates)
+        console.log('new coordinates', newCoordinates)
+        // console.log(newCoordinates)
+
+        for (let key in newCoordinates) {
+          targetEl.style[newCoordinates[key][css]] = newCoordinates[key][cur] + 'px';
+        };
+        
+        return newCoordinates;
+        
       };
 
-      const labels = ['currentPosition', 'distanceToEnd'];
+      const labels = ['currentPosition', 'distanceToEnd', 'cssProperty'],
+        initialCoordinates = {
+          x: makeCoordinates(target, position.x, 'left', ...labels),
+          y: makeCoordinates(target, position.y, 'top', ...labels),
+        };
 
-      const targetCoordinates = {
-        x: positionObject(target, position.x, 'left', ...labels),
-        y: positionObject(target, position.y, 'top', ...labels)
-      };
+      // console.log('initial', initialCoordinates)
+      // console.log('next', animateToEnd(target, initialCoordinates, ...labels))
 
-      // console.log(targetCoordinates)
-      // console.log(animateToEnd(targetCoordinates, ...labels))
-
-      target.style.left = position.x + 'px';
-      target.style.top = position.y + 'px';
+      animateToEnd(target, initialCoordinates, ...labels)
 
       // temp, replace with animate
-      target.classList.add('transition-1');
-
-      setTimeout(() => {
-        target.classList.remove('transition-1')
-      }, 500);
+      // target.style.left = position.x + 'px';
+      // target.style.top = position.y + 'px';
+      // target.classList.add('transition-1');
+      // setTimeout(() => {
+      //   target.classList.remove('transition-1')
+      // }, 500);
 
     } else {
 
@@ -108,15 +130,16 @@ const mover = function (target, container) {
   };
 
   // make sure object does not go outside container
-  const checkTargetBoundaries = (pos, target, container) => {
+  const checkTargetBoundaries = (pos, target, container, range) => {
     let x = pos.x,
-      y = pos.y;
+      y = pos.y,
+      space = range || 0;
 
     if (!container.isWindow) {
-      if (x < 0) x = 0;
-      if (y < 0) y = 0;
-      if (x + target.width > container.width) x = container.width - target.width;
-      if (y + target.height > container.height) y = container.height - target.height;
+      if (x < 0 - space) x = 0;
+      if (y < 0 - space) y = 0;
+      if (x + target.width - space > container.width) x = container.width - target.width;
+      if (y + target.height - space > container.height) y = container.height - target.height;
     };
 
     return {
@@ -125,12 +148,12 @@ const mover = function (target, container) {
     };
   };
 
-  // make sure target does not go outside window
-  const checkWindowBoundaries = (target) => {
+  // make sure object does not go outside window
+  const checkWindowBoundaries = (target, range) => {
     const clientRect = target.element.getBoundingClientRect(),
       innerHeight = window.innerHeight,
       innerWidth = window.innerWidth,
-      space = 3,
+      space = range || 3,
       conditions = [
         clientRect.y < -target.height / space,
         clientRect.y > innerHeight - target.height / space,
@@ -141,7 +164,9 @@ const mover = function (target, container) {
     return flagCheck(conditions, stopMoving);
   };
 
-  // stop moving target if mouse is beyond range outside container
+  // stop moving object if mouse is beyond range outside container
+  // todo: make this optional, toggle with checkTargetBoundaries
+  //       make checkTargetBoundaries behave like windowBoundaries and animate target back into container
   const checkMouseBoundaries = (mouse, container, range) => {
     const space = range || 0,
       conditions = [
@@ -154,26 +179,11 @@ const mover = function (target, container) {
     return flagCheck(conditions, stopMoving);
   };
 
-  // start moving target
+  // start moving object
   const startMoving = (target, container, initialPos, evt) => {
 
-    //todo: possibly refactor targetEl and containerEl objects to function
-    const targetEl = {
-        top: target.offsetTop,
-        left: target.offsetLeft,
-        width: target.clientWidth,
-        height: target.clientHeight,
-        element: target,
-        // isWindow: 
-      },
-      containerEl = {
-        top: container.offsetTop,
-        left: container.offsetLeft,
-        width: container.clientWidth,
-        height: container.clientHeight,
-        isWindow: container === window.document,
-        // element 
-      },
+    const targetEl = getElProperties(target),
+      containerEl = getElProperties(container),
       // offset from mouse to target element borders
       offset = {
         x: evt.clientX - targetEl.left,
@@ -192,7 +202,7 @@ const mover = function (target, container) {
         };
 
       // check mouse is within container borders + additional range in px
-      checkMouseBoundaries(mouse, containerEl, 100)
+      checkMouseBoundaries(mouse, containerEl, 100);
 
       // check mouse is within window
       if (checkWindowBoundaries(targetEl)) {
@@ -201,9 +211,9 @@ const mover = function (target, container) {
       } else {
         // return to starting position if outside window
         moveTarget(target, initialPos, true);
-      }
+      };
 
-    }
+    };
 
     // stop on mouse up
     document.onmouseup = () => {
@@ -211,7 +221,7 @@ const mover = function (target, container) {
     };
   };
 
-  // stop moving target
+  // stop moving object
   const stopMoving = () => {
     document.onmousemove = false;
   };
@@ -236,8 +246,3 @@ const mover = function (target, container) {
   return;
 
 };
-
-// initialize mover
-window.onload = function (e) {
-  mover('elem', 'containerR');
-}
