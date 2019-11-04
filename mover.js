@@ -18,9 +18,13 @@ const mover = function (target, container) {
       document.getElementsByClassName(query)[0]
     ];
 
-    return options.reduce((acc, cur) => {
+    let temp = options.reduce((acc, cur) => {
       return cur ? cur : acc;
     }, false);
+
+    console.log(temp, temp.getBoundingClientRect())
+
+    return temp;
 
   };
 
@@ -36,90 +40,90 @@ const mover = function (target, container) {
     }
   };
 
+
+
+  // animate target to position (not done, using css class right now)
+  // create coordinate objects for x and y cssAxis
+  const makeCoordinates = (target, endPosition, cssAxis, cur, dist, css) => {
+
+    // get current position
+    const getCurrentPosition = function (el, cssAxis) {
+      return parseInt(el.style[cssAxis].replace('px', ''), 10)
+    }
+
+    // get distance to endpoint
+    const getDistance = function (current, end) {
+      var distance = Math.abs(current - end),
+        plusOrMinus = current > end ? -1 : 1;
+      return plusOrMinus * distance;
+    };
+
+    // return results
+    const current = getCurrentPosition(target, cssAxis);
+    const distance = getDistance(current, endPosition);
+
+    return {
+      [cur]: current,
+      [dist]: distance,
+      [css]: cssAxis,
+    }
+  }
+
+  const changeCoordinates = (coordinates, cur, dist) => {
+    const newCoordinates = {};
+    // todo: be able to change amount
+
+    for (let i in coordinates) {
+      if (coordinates[i][dist] === 0) {
+        newCoordinates[i] = coordinates[i];
+      } else {
+        const amount = coordinates[i][dist] < 0 ? -10 : 10;
+
+        newCoordinates[i] = {
+          ...coordinates[i],
+          [cur]: coordinates[i][cur] + amount,
+          [dist]: coordinates[i][dist] - amount,
+        };
+      };
+    };
+
+    return newCoordinates;
+  };
+
+  const animateToEnd = (targetEl, coordinates, cur, dist, css) => {
+    const newCoordinates = changeCoordinates(coordinates, cur, dist);
+
+    for (let key in newCoordinates) {
+      targetEl.style[newCoordinates[key][css]] = newCoordinates[key][cur] + 'px';
+    };
+
+    return newCoordinates;
+
+  };
+
   // move object
   const moveTarget = (target, position, animate) => {
     if (animate) {
-
-      // animate target to position (not done, using css class right now)
-      // create coordinate objects for x and y cssAxis
-      const makeCoordinates = (target, endPosition, cssAxis, cur, dist, css) => {
-
-        // get current position
-        const getCurrentPosition = function (el, cssAxis) {
-          return parseInt(el.style[cssAxis].replace('px', ''), 10)
-        }
-
-        // get distance to endpoint
-        const getDistance = function (current, end) {
-          var distance = Math.abs(current - end),
-            plusOrMinus = current > end ? -1 : 1;
-          return plusOrMinus * distance;
-        };
-
-        // return results
-        const current = getCurrentPosition(target, cssAxis);
-        const distance = getDistance(current, endPosition);
-
-        return {
-          [cur]: current,
-          [dist]: distance,
-          [css]: cssAxis,
-        }
-      }
-
-      const changeCoordinates = (coordinates, cur, dist) => {
-        const newCoordinates = {};
-        // todo: be able to change amount
-
-        for (let i in coordinates) {
-          if (coordinates[i][dist] === 0) {
-            newCoordinates[i] = coordinates[i];
-          } else {
-            const amount = coordinates[i][dist] < 0 ? -1 : 1;
-
-            newCoordinates[i] = {
-              ...coordinates[i],
-              [cur]: coordinates[i][cur] + amount,
-              [dist]: coordinates[i][dist] - amount,
-            };
-          };
-        };
-
-        return newCoordinates;
-      };
-
-      const animateToEnd = (targetEl, coordinates, cur, dist, css) => {
-        const newCoordinates = changeCoordinates(coordinates, cur, dist);
-        console.log('current coordinates', coordinates)
-        console.log('new coordinates', newCoordinates)
-        // console.log(newCoordinates)
-
-        for (let key in newCoordinates) {
-          targetEl.style[newCoordinates[key][css]] = newCoordinates[key][cur] + 'px';
-        };
-        
-        return newCoordinates;
-        
-      };
-
+      
+      // UNCOMMENT LATER
+      /*
       const labels = ['currentPosition', 'distanceToEnd', 'cssProperty'],
         initialCoordinates = {
           x: makeCoordinates(target, position.x, 'left', ...labels),
           y: makeCoordinates(target, position.y, 'top', ...labels),
         };
 
-      // console.log('initial', initialCoordinates)
-      // console.log('next', animateToEnd(target, initialCoordinates, ...labels))
-
-      animateToEnd(target, initialCoordinates, ...labels)
+      
+      // animateToEnd(target, initialCoordinates, ...labels)
+      */
 
       // temp, replace with animate
-      // target.style.left = position.x + 'px';
-      // target.style.top = position.y + 'px';
-      // target.classList.add('transition-1');
-      // setTimeout(() => {
-      //   target.classList.remove('transition-1')
-      // }, 500);
+      target.style.left = position.x + 'px';
+      target.style.top = position.y + 'px';
+      target.classList.add('transition-1');
+      setTimeout(() => {
+        target.classList.remove('transition-1')
+      }, 500);
 
     } else {
 
@@ -135,17 +139,19 @@ const mover = function (target, container) {
       y = pos.y,
       space = range || 0;
 
-    if (!container.isWindow) {
-      if (x < 0 - space) x = 0;
-      if (y < 0 - space) y = 0;
-      if (x + target.width - space > container.width) x = container.width - target.width;
-      if (y + target.height - space > container.height) y = container.height - target.height;
-    };
+    // UNCOMMENT LATER
+    // if (!container.isWindow) {
+    //   if (x < 0 - space) x = 0;
+    //   if (y < 0 - space) y = 0;
+    //   if (x + target.width - space > container.width) x = container.width - target.width;
+    //   if (y + target.height - space > container.height) y = container.height - target.height;
+    // };
 
     return {
       x,
       y
     };
+
   };
 
   // make sure object does not go outside window
@@ -202,12 +208,14 @@ const mover = function (target, container) {
         };
 
       // check mouse is within container borders + additional range in px
-      checkMouseBoundaries(mouse, containerEl, 100);
+      // UNCOMMENT LATER
+      // checkMouseBoundaries(mouse, containerEl, 100);
 
       // check mouse is within window
       if (checkWindowBoundaries(targetEl)) {
         // moveTarget if within window
         moveTarget(target, checkTargetBoundaries(targetPos, targetEl, containerEl), false);
+        // moveTarget(target, targetPos, false);
       } else {
         // return to starting position if outside window
         moveTarget(target, initialPos, true);

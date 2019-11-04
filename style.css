@@ -17,7 +17,7 @@ position:absolute;
   left:50px;
 }
 #elem{
-  position: relative;
+  position: absolute;
   background-color: green;
   width: 200px;
   height: 100px;
