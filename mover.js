@@ -52,100 +52,18 @@ const mover = function (target, container) {
     }, 250);
   };
 
-  // animate target to position (not done, using css class right now)
-  // create coordinate objects for x and y cssAxis
-  const makeCoordinates = (target, endPosition, cssAxis, cur, dist, css) => {
-
-    // get current position
-    const getCurrentPosition = function (el, cssAxis) {
-      return parseInt(el.style[cssAxis].replace('px', ''), 10)
-    }
-
-    // get distance to endpoint
-    const getDistance = function (current, end) {
-      var distance = Math.abs(current - end),
-        plusOrMinus = current > end ? -1 : 1;
-      return plusOrMinus * distance;
-    };
-
-    // return results
-    const current = getCurrentPosition(target, cssAxis);
-    const distance = getDistance(current, endPosition);
-
-    return {
-      [cur]: current,
-      [dist]: distance,
-      [css]: cssAxis,
-    }
-  }
-
-  const changeCoordinates = (coordinates, cur, dist) => {
-    const newCoordinates = {};
-    // todo: be able to change amount
-
-    for (let i in coordinates) {
-      if (coordinates[i][dist] === 0) {
-        newCoordinates[i] = coordinates[i];
-      } else {
-        const amount = coordinates[i][dist] < 0 ? -10 : 10;
-
-        newCoordinates[i] = {
-          ...coordinates[i],
-          [cur]: coordinates[i][cur] + amount,
-          [dist]: coordinates[i][dist] - amount,
-        };
-      };
-    };
-
-    return newCoordinates;
-  };
-
-  const animateToEnd = (targetEl, coordinates, cur, dist, css) => {
-    const newCoordinates = changeCoordinates(coordinates, cur, dist);
-
-    for (let key in newCoordinates) {
-      targetEl.style[newCoordinates[key][css]] = newCoordinates[key][cur] + 'px';
-    };
-
-    return newCoordinates;
-
-  };
-
   // move object
   const moveTarget = (target, position, animate) => {
-    if (animate) {
 
-      // UNCOMMENT LATER
-      /*
-      const labels = ['currentPosition', 'distanceToEnd', 'cssProperty'],
-        initialCoordinates = {
-          x: makeCoordinates(target, position.x, 'left', ...labels),
-          y: makeCoordinates(target, position.y, 'top', ...labels),
-        };
+    // set new coordinates without animating
+    target.style.left = position.x + 'px';
+    target.style.top = position.y + 'px';
 
-      
-      // animateToEnd(target, initialCoordinates, ...labels)
-      */
-
-      // temp, replace with animate
-      target.style.left = position.x + 'px';
-      target.style.top = position.y + 'px';
-      target.classList.add('transition-1');
-      setTimeout(() => {
-        target.classList.remove('transition-1')
-      }, 500);
-
-    } else {
-
-      // set new coordinates without animating
-      target.style.left = position.x + 'px';
-      target.style.top = position.y + 'px';
-    };
   };
 
   // make sure object does not go outside container
   // todo: replace with clientrect
-  const checkTargetBoundaries = (pos, target, container, range) => {
+  const checkTargetBoundaries = (pos, target, container, initialPos, initialContainerPos) => {
     let x = pos.x,
       y = pos.y;
 
@@ -166,34 +84,69 @@ const mover = function (target, container) {
       y
     };
 
-    const containerEl = container.element.getBoundingClientRect()
-    const targetEl = target.element.getBoundingClientRect()
-    const classList = target.element.classList
+    const containerRect = container.element.getBoundingClientRect()
+    const targetRect = target.element.getBoundingClientRect()
+    const targetStyle = target.element.style
     const space = 20
     const conditions = [
-      targetEl.left < containerEl.left - space,
-      targetEl.right > containerEl.right + space,
-      targetEl.top < containerEl.top - space,
-      targetEl.bottom > containerEl.bottom + space
-    ];
-    const errors = [
-      'left boundary',
-      'right boundary',
-      'top boundary',
-      'bottom boundary'
+      targetRect.left < containerRect.left - space,
+      targetRect.right > containerRect.right + space,
+      targetRect.top < containerRect.top - space,
+      targetRect.bottom > containerRect.bottom + space
     ];
     const resolutions = [
       () => {
-        moveBack(target.element, 0, targetEl.top - containerEl.top)
+        // left resolution
+        // target initial rectx - initial offsetLeft (style left) - initial container offsetleft
+        // 0 -(170 - 50 - 40) = -80
+        console.log('container rect', containerRect)
+        console.log('target rect', targetRect)
+        console.log('initial container', initialContainerPos)
+        console.log('initial target', initialPos)
+
+        // works for subcontainer, values: 170 - 130 - 40
+        // = 0 (desired)
+        // moveBack(target.element, initialPos.rect.x - initialContainerPos.rect.x - initialPos.x, targetStyle.top)
+
+        // for container values: 170 - 50 - 40
+        // = 80 (desired if not nested)
+        // desired is -80 (subcontainer's left distance from container)
+
+        /**
+         * with CONTAINER
+         * target css left: 40
+         * container left: 50
+         * target rect left: 170
+         * difference/target rect left - container left and css left: 80
+         * container rect left: 50
+         * difference/target rect left - container rect left and css left: 80
+         * 
+         * with SUBCONTAINER
+         * target css left: 40
+         * container left: 80
+         * target rect left: 170
+         * difference/target rect left - container left and css left: 50
+         * container rect left: 130
+         * difference/target rect left - container rect left and css left: 0
+         * 
+         * possible solution:
+         * set x to 0 - (target rect left - container rect left - css left)
+         */
+        moveBack(target.element, 0 - (initialPos.rect.x - initialContainerPos.rect.x - initialPos.x), targetStyle.top)
       },
       () => {
-        moveBack(target.element, containerEl.width - targetEl.width, targetEl.top - containerEl.top)
+        console.log('right res')
+        // right resolution
+        // 50 under
+        moveBack(target.element, initialPos.x, targetStyle.top)
       },
       () => {
-        moveBack(target.element, targetEl.left - containerEl.left, 0)
+        console.log('top res')
+        moveBack(target.element, targetRect.left - containerRect.left, 0)
       },
       () => {
-        moveBack(target.element, targetEl.left - containerEl.left, containerEl.height - targetEl.height)
+        console.log('bottom res')
+        moveBack(target.element, targetRect.left - containerRect.left, containerRect.height - targetRect.height)
       },
     ];
 
@@ -253,9 +206,7 @@ const mover = function (target, container) {
       ]
 
     return flagCheck(conditions, (ind) => {
-      console.log('window boundaries reached');
       stopMoving();
-      console.log(errors[ind]);
       resolutions[ind]();
     });
   };
@@ -276,19 +227,17 @@ const mover = function (target, container) {
   };
 
   // start moving object
-  const startMoving = (target, container, initialPos, evt) => {
+  const startMoving = (target, container, initialPos, initialContainerPos, evt) => {
 
-    const targetEl = getElProperties(target),
-      containerEl = getElProperties(container),
+    const targetElem = getElProperties(target),
+      containerElem = getElProperties(container),
       // offset from mouse to target element borders
       offset = {
-        x: evt.clientX - targetEl.left,
-        y: evt.clientY - targetEl.top,
+        x: evt.clientX - targetElem.left,
+        y: evt.clientY - targetElem.top,
       };
 
     document.onmousemove = (evt) => {
-
-      // console.log(initialPos.rect)
 
       const mouse = {
           x: evt.clientX,
@@ -301,18 +250,14 @@ const mover = function (target, container) {
 
       // check mouse is within container borders + additional range in px
       // UNCOMMENT LATER
-      // checkMouseBoundaries(mouse, containerEl, 100);
+      // checkMouseBoundaries(mouse, containerElem, 100);
 
       // check mouse is within window
-      if (checkWindowBoundaries(targetEl, initialPos)) {
+      if (checkWindowBoundaries(targetElem, initialPos)) {
         // moveTarget if within window
-        moveTarget(target, checkTargetBoundaries(targetPos, targetEl, containerEl), false);
+        moveTarget(target, checkTargetBoundaries(targetPos, targetElem, containerElem, initialPos, initialContainerPos), false);
         // moveTarget(target, targetPos, false);
       }
-      // else {
-      // return to starting position if outside window
-      // moveTarget(target, initialPos, true);
-      // };
 
     };
 
@@ -340,13 +285,18 @@ const mover = function (target, container) {
       rect: targetFound.getBoundingClientRect()
     };
 
+    // initial container position (testing to see if fixes nested container bug)
+    const initialContainerPosition = {
+      x: containerFound.offsetLeft,
+      y: containerFound.offsetTop,
+      rect: containerFound.getBoundingClientRect()
+    }
+
     targetFound.addEventListener('mousedown', function (evt) {
-      startMoving(targetFound, containerFound, initialPosition, evt);
+      startMoving(targetFound, containerFound, initialPosition, initialContainerPosition, evt);
     });
   }
 
   return;
 
 };
-
-// todo: handle any number of container and parent elements , while still confining target element to SPECIFIED container OR window
