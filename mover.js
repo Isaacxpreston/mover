@@ -94,88 +94,22 @@ const mover = function (target, container) {
       targetRect.top < containerRect.top - space,
       targetRect.bottom > containerRect.bottom + space
     ];
+    const leftBorder = (initialPos.x - initialPos.rect.x) + initialContainerPos.rect.x;
+    const rightBorder = leftBorder + (containerRect.width - targetRect.width);
+    const topBorder = (initialPos.y - initialPos.rect.y) + initialContainerPos.rect.y;
+    const bottomBorder = topBorder + (containerRect.height - targetRect.height);
     const resolutions = [
       () => {
-
-        // works for subcontainer, values: 170 - 130 - 40
-        // = 0 (desired)
-        // moveBack(target.element, initialPos.rect.x - initialContainerPos.rect.x - initialPos.x, targetStyle.top)
-
-        // for container values: 170 - 50 - 40
-        // = 80 (desired if not nested)
-        // desired is -80 (subcontainer's left distance from container)
-
-        /**
-         * with CONTAINER
-         * target css left: 40
-         * container left: 50
-         * target rect left: 170
-         * difference/target rect left - container left and css left: 80
-         * container rect left: 50
-         * difference/target rect left - container rect left and css left: 80
-         * 
-         * with SUBCONTAINER
-         * target css left: 40
-         * container left: 80
-         * target rect left: 170
-         * difference/target rect left - container left and css left: 50
-         * container rect left: 130
-         * difference/target rect left - container rect left and css left: 0
-         * 
-         * possible solution:
-         * set x to 0 - (target rect left - container rect left - css left)
-         * 
-         * 
-         * another possible solution:
-         * (target css left - target rect left) + container rect left
-         * with container = -80
-         * with subcontainer = 0
-         * THEN move to other end of container
-         * result + (container width - target width)
-         */
-
-        // moveBack(target.element, 0 - (initialPos.rect.x - initialContainerPos.rect.x - initialPos.x), targetStyle.top)
-        moveBack(target.element, (initialPos.x - initialPos.rect.x) + initialContainerPos.rect.x, targetStyle.top)
+        moveBack(target.element, leftBorder, targetStyle.top)
       },
       () => {
-        console.log('right res')
-        console.log('container rect', containerRect)
-        console.log('target rect', targetRect)
-        console.log('initial container', initialContainerPos)
-        console.log('initial target', initialPos)
-        // right resolution
-        // 50 under
-        /**
-         * with CONTAINER
-         * target css left: 40
-         * container css left: 50
-         * container rect left: 50
-         * target rect left: 170
-         * container width: 600
-         * target width: 200
-         * desired left: 320
-         * target width + target rect left - container rect left = 320
-         * 
-         * with SUBCONTAINER
-         * target css left: 40
-         * container css left: 80
-         * target rect left: 170
-         * container rect left: 130
-         * target width: 200
-         * container width: 300
-         * desired left: 100
-         * target width + target rect left - container rect left = 240
-         * 
-         */
-        moveBack(target.element, ((initialPos.x - initialPos.rect.x) + initialContainerPos.rect.x) + (containerRect.width - targetRect.width), targetStyle.top)
+        moveBack(target.element, rightBorder, targetStyle.top)
       },
       () => {
-        console.log('top res')
-        moveBack(target.element, targetRect.left - containerRect.left, 0)
+        moveBack(target.element, targetStyle.left, topBorder)
       },
       () => {
-        console.log('bottom res')
-        moveBack(target.element, targetRect.left - containerRect.left, containerRect.height - targetRect.height)
+        moveBack(target.element, targetStyle.left, bottomBorder)
       },
     ];
 
