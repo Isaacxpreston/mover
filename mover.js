@@ -39,10 +39,12 @@ const mover = function (target, container) {
     }
   };
 
+  // change px string to int
   const removePx = (input) => {
     return typeof input === 'string' ? parseInt(input.replace('px', ''), 10) : input
   }
 
+  // animate back to position
   const moveBack = (target, x, y) => {
     target.style.left = removePx(x) + 'px';
     target.style.top = removePx(y) + 'px';
@@ -53,31 +55,15 @@ const mover = function (target, container) {
   };
 
   // move object
-  const moveTarget = (target, position, animate) => {
-
-    // set new coordinates without animating
+  const moveTarget = (target, position) => {
     target.style.left = position.x + 'px';
     target.style.top = position.y + 'px';
-
   };
 
   // make sure object does not go outside container
-  // todo: replace with clientrect
   const checkTargetBoundaries = (pos, target, container, initialPos, initialContainerPos) => {
     let x = pos.x,
       y = pos.y;
-
-    // space = range || 0;
-
-    // UNCOMMENT LATER
-    // if (!container.isWindow) {
-    //   if (x < 0 - space) x = 0;
-    //   if (y < 0 - space) y = 0;
-    //   if (x + target.width - space > container.width) x = container.width - target.width;
-    //   if (y + target.height - space > container.height) y = container.height - target.height;
-    // };
-
-    // --
 
     if (container.isWindow) return {
       x,
@@ -87,6 +73,13 @@ const mover = function (target, container) {
     const containerRect = container.element.getBoundingClientRect()
     const targetRect = target.element.getBoundingClientRect()
     const targetStyle = target.element.style
+
+
+    const leftBorder = (initialPos.x - initialPos.rect.x) + initialContainerPos.rect.x;
+    const rightBorder = leftBorder + (containerRect.width - targetRect.width);
+    const topBorder = (initialPos.y - initialPos.rect.y) + initialContainerPos.rect.y;
+    const bottomBorder = topBorder + (containerRect.height - targetRect.height);
+
     const space = 20
     const conditions = [
       targetRect.left < containerRect.left - space,
@@ -94,12 +87,14 @@ const mover = function (target, container) {
       targetRect.top < containerRect.top - space,
       targetRect.bottom > containerRect.bottom + space
     ];
-    const leftBorder = (initialPos.x - initialPos.rect.x) + initialContainerPos.rect.x;
-    const rightBorder = leftBorder + (containerRect.width - targetRect.width);
-    const topBorder = (initialPos.y - initialPos.rect.y) + initialContainerPos.rect.y;
-    const bottomBorder = topBorder + (containerRect.height - targetRect.height);
+
+
     const resolutions = [
       () => {
+        // todo: wait to move back until mouse up or out of range
+        // okay to invoke immediately on window check, would look better if not on container
+        // set x or y to top border, left border, etc
+        // once mouse out of range or mouseup then stopmoving/moveback should be called
         moveBack(target.element, leftBorder, targetStyle.top)
       },
       () => {
@@ -118,9 +113,6 @@ const mover = function (target, container) {
       resolutions[ind]();
     });
 
-    // --
-
-    // refactor later!
     if (flagCheck(conditions)) {
       return {
         x,
@@ -129,8 +121,6 @@ const mover = function (target, container) {
     } else {
       return false
     }
-
-
 
   };
 
@@ -200,6 +190,8 @@ const mover = function (target, container) {
         y: evt.clientY - targetElem.top,
       };
 
+      targetElem.element.classList.add('moving')
+
     document.onmousemove = (evt) => {
 
       const mouse = {
@@ -219,13 +211,13 @@ const mover = function (target, container) {
       if (checkWindowBoundaries(targetElem, initialPos)) {
         // moveTarget if within window
         moveTarget(target, checkTargetBoundaries(targetPos, targetElem, containerElem, initialPos, initialContainerPos), false);
-        // moveTarget(target, targetPos, false);
       }
 
     };
 
     // stop on mouse up
     document.onmouseup = () => {
+      targetElem.element.classList.remove('moving')
       stopMoving();
     };
   };
@@ -249,10 +241,12 @@ const mover = function (target, container) {
     };
 
     // initial container position (testing to see if fixes nested container bug)
+    // if container does not move may not be needed
+    // if container does move will have to consider additional factors
     const initialContainerPosition = {
       x: containerFound.offsetLeft,
       y: containerFound.offsetTop,
-      rect: containerFound.getBoundingClientRect()
+      rect: containerFound === window.document ? null : containerFound.getBoundingClientRect()
     }
 
     targetFound.addEventListener('mousedown', function (evt) {

@@ -27,6 +27,16 @@ h3 {
   top: 40px;
   left: 40px;
   user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#elem > h3 {
+  position: relative;
+  margin: auto;
+  text-align: center;
+  user-select: none;
 }
 
 .transition-1 {
@@ -57,4 +67,10 @@ h3 {
   top:30px;
   left: 80px;
   background: #98ff98;
+}
+
+.moving {
+  cursor: grab;
+  box-sizing: border-box;
+  border: 5px solid magenta;
 }
