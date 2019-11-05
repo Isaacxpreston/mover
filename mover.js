@@ -96,13 +96,6 @@ const mover = function (target, container) {
     ];
     const resolutions = [
       () => {
-        // left resolution
-        // target initial rectx - initial offsetLeft (style left) - initial container offsetleft
-        // 0 -(170 - 50 - 40) = -80
-        console.log('container rect', containerRect)
-        console.log('target rect', targetRect)
-        console.log('initial container', initialContainerPos)
-        console.log('initial target', initialPos)
 
         // works for subcontainer, values: 170 - 130 - 40
         // = 0 (desired)
@@ -131,14 +124,50 @@ const mover = function (target, container) {
          * 
          * possible solution:
          * set x to 0 - (target rect left - container rect left - css left)
+         * 
+         * 
+         * another possible solution:
+         * (target css left - target rect left) + container rect left
+         * with container = -80
+         * with subcontainer = 0
+         * THEN move to other end of container
+         * result + (container width - target width)
          */
-        moveBack(target.element, 0 - (initialPos.rect.x - initialContainerPos.rect.x - initialPos.x), targetStyle.top)
+
+        // moveBack(target.element, 0 - (initialPos.rect.x - initialContainerPos.rect.x - initialPos.x), targetStyle.top)
+        moveBack(target.element, (initialPos.x - initialPos.rect.x) + initialContainerPos.rect.x, targetStyle.top)
       },
       () => {
         console.log('right res')
+        console.log('container rect', containerRect)
+        console.log('target rect', targetRect)
+        console.log('initial container', initialContainerPos)
+        console.log('initial target', initialPos)
         // right resolution
         // 50 under
-        moveBack(target.element, initialPos.x, targetStyle.top)
+        /**
+         * with CONTAINER
+         * target css left: 40
+         * container css left: 50
+         * container rect left: 50
+         * target rect left: 170
+         * container width: 600
+         * target width: 200
+         * desired left: 320
+         * target width + target rect left - container rect left = 320
+         * 
+         * with SUBCONTAINER
+         * target css left: 40
+         * container css left: 80
+         * target rect left: 170
+         * container rect left: 130
+         * target width: 200
+         * container width: 300
+         * desired left: 100
+         * target width + target rect left - container rect left = 240
+         * 
+         */
+        moveBack(target.element, ((initialPos.x - initialPos.rect.x) + initialContainerPos.rect.x) + (containerRect.width - targetRect.width), targetStyle.top)
       },
       () => {
         console.log('top res')
